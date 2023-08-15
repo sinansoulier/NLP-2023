@@ -75,8 +75,8 @@ def data_generator(
         batch_X = X[i : i + batch_size]
         batch_y = y[i : i + batch_size]
         batch_X = nn.utils.rnn.pad_sequence(
-            batch_X, batch_first=True, padding_value=pad_id
-        )
+            batch_X[::-1], batch_first=True, padding_value=pad_id
+        ).flip(dims=[0])
         yield batch_X, torch.tensor(batch_y, dtype=torch.float32)
 
 def get_device() -> str:
@@ -160,15 +160,15 @@ def train(
     train_losses = []
     valid_losses = []
     best_valid_loss = float("inf")
-    for epoch in range(n_epochs):
+    for epoch in tqdm(range(n_epochs)):
         train_loss = 0.0
         model.train()
         for X_batch, y_batch in tqdm(train_generator()):
             X_batch = X_batch.to(device)
             y_batch = y_batch.to(device)
-            optimizer.zero_grad()
             y_pred = model(X_batch)
             loss = criterion(y_pred, y_batch.unsqueeze(1))
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
