@@ -1,7 +1,9 @@
 datasets
-torch
-torchtext
+torch==2.2.2
+torchtext==0.17.2
 scikit-learn
-numpy
+numpy==1.26.4
 pandas
 matplotlib
+ipywidgets==8.1.0
+ipykernel==6.30.1
