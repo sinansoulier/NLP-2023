@@ -134,3 +134,8 @@ tree.sh
 
 # Models
 */*/*.pt
+
+# Pictures
+*.png
+
+*.vscode
