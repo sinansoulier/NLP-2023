@@ -37,7 +37,7 @@ def build_vocabulary(dataset: ds.Dataset, tokenizer: Callable) -> Vocab:
     """
     tokens = tokenizer(" ".join(dataset["text"]))
     counter = Counter(tokens)
-    vocabulary = vocab(counter, min_freq=10, specials=["<unk>", "<pad>"])
+    vocabulary = vocab(counter, min_freq=3, specials=["<unk>", "<pad>"])
     vocabulary.set_default_index(vocabulary["<unk>"])
 
     return vocabulary
@@ -120,7 +120,9 @@ def evaluate(
             X_batch = X_batch.to(device)
             y_batch = y_batch.to(device)
             y_true.extend(y_batch.tolist())
-            y_pred.extend(model(X_batch).round().squeeze(1).tolist())
+            logits = model(X_batch)
+            predict = torch.sigmoid(logits)
+            y_pred.extend(predict.round().squeeze(1).tolist())
         accuracy = accuracy_score(y_true, y_pred)
         precision = precision_score(y_true, y_pred)
         recall = recall_score(y_true, y_pred)
@@ -135,8 +137,6 @@ def evaluate(
 
 def train(
     model: nn.Module,
-    X_train: List[torch.Tensor],
-    X_val: List[torch.Tensor],
     criterion: nn.Module,
     optimizer: torch.optim.Optimizer,
     train_generator: Generator[Tuple[torch.Tensor, torch.Tensor], None, None],
@@ -153,6 +153,7 @@ def train(
         train_generator: a generator of training data.
         valid_generator: a generator of validation data.
         n_epochs: the number of epochs.
+        batch_size: size of a given batch,
         device: the device to use.
     Returns:
         A tuple of lists of train and validation losses.
@@ -160,10 +161,16 @@ def train(
     train_losses = []
     valid_losses = []
     best_valid_loss = float("inf")
+    nb_train_batches = len(list(train_generator()))
+    nb_valid_batches = len(list(valid_generator()))
     for epoch in tqdm(range(n_epochs)):
         train_loss = 0.0
         model.train()
-        for X_batch, y_batch in tqdm(train_generator()):
+        for X_batch, y_batch in tqdm(
+            train_generator(),
+            total=nb_train_batches,
+            colour="red"
+        ):
             X_batch = X_batch.to(device)
             y_batch = y_batch.to(device)
             y_pred = model(X_batch)
@@ -172,7 +179,7 @@ def train(
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
-        train_loss /= len(X_train)
+        train_loss /= nb_train_batches
         valid_loss = 0.0
         model.eval()
         with torch.no_grad():
@@ -182,7 +189,7 @@ def train(
                 y_pred = model(X_batch)
                 loss = criterion(y_pred, y_batch.unsqueeze(1))
                 valid_loss += loss.item()
-            valid_loss /= len(X_val)
+            valid_loss /= nb_valid_batches
         train_losses.append(train_loss)
         valid_losses.append(valid_loss)
         if valid_loss < best_valid_loss:
