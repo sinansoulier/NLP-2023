@@ -173,9 +173,9 @@ def train(
         ):
             X_batch = X_batch.to(device)
             y_batch = y_batch.to(device)
+            optimizer.zero_grad()
             y_pred = model(X_batch)
             loss = criterion(y_pred, y_batch.unsqueeze(1))
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             train_loss += loss.item()
