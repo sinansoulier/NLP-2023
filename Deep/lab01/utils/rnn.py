@@ -17,7 +17,7 @@ def load_imdb_datasets() -> tuple[ds.Dataset]:
     Returns:
         datasets: list[ds.Dataset] - List of datasets
     """
-    dataset = load_dataset("imdb")
+    dataset = load_dataset("stanfordnlp/imdb")
     train_dataset = dataset["train"].train_test_split(
         stratify_by_column="label", test_size=0.2, seed=42
     )
